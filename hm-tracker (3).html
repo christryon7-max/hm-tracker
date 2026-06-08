@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Desert Run">
+<meta name="theme-color" content="#08071A">
+<title>Desert Run · HM Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700;800;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sky-deep:#08071A; --sky-mid:#0D1035; --sky-horizon:#1a1a4e;
+  --sand:#C8874A; --sand-light:#E8A96A; --sand-pale:#F5C98A;
+  --coral:#E8634A; --coral-light:#F07A60;
+  --moon:#F5E6C8; --star:#E8D4A0;
+  --phase1:#4A9EE8; --phase2:#E8A040; --phase3:#48C878;
+  --text:#F0EAD6; --muted:#A89880; --dim:#6A5A4A; --faint:#3A2A1A;
+  --card:#0D1035CC; --card-solid:#0D1035;
+  --border:#2A2560;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow-x:hidden;background:var(--sky-deep);}
+body{font-family:'DM Sans',sans-serif;color:var(--text);}
+
+/* ── STARFIELD ── */
+#starfield{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* ── APP SHELL ── */
+.app{max-width:480px;margin:0 auto;min-height:100vh;position:relative;z-index:1;display:flex;flex-direction:column;}
+
+/* ── HEADER ── */
+.header{
+  padding:calc(8px + var(--safe-top)) 16px 0;
+  position:sticky;top:0;z-index:50;
+  background:linear-gradient(180deg,rgba(8,7,26,0.97) 0%,rgba(8,7,26,0.85) 70%,transparent 100%);
+  backdrop-filter:blur(8px);
+}
+.header-inner{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:6px;}
+.header-eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:9px;color:var(--sand);font-weight:600;letter-spacing:0.2em;text-transform:uppercase;}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.06em;color:var(--text);line-height:1;background:linear-gradient(135deg,var(--moon),var(--sand-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.header-race{text-align:right;}
+.header-race-label{font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;}
+.header-race-date{font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--sand-light);letter-spacing:0.08em;}
+.header-race-loc{font-size:8px;color:var(--dim);font-style:italic;}
+
+/* ── DESERT HORIZON SVG ── */
+#horizon-wrap{width:100%;line-height:0;margin-top:-2px;height:36px;overflow:hidden;}
+
+/* ── CONTENT ── */
+.content{flex:1;padding:8px 12px calc(70px + var(--safe-bot));overflow-y:auto;}
+
+/* ── CARDS ── */
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;padding:11px 14px;margin-bottom:8px;
+  backdrop-filter:blur(12px);
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;inset:0;border-radius:16px;
+  background:linear-gradient(135deg,rgba(255,255,255,0.04) 0%,transparent 60%);
+  pointer-events:none;
+}
+.card-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--muted);font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:5px;}
+
+/* ── COUNTDOWN RING ── */
+.countdown-card{
+  background:linear-gradient(145deg,#110E35,#0A0820);
+  border:1px solid #3A2F7A;border-radius:14px;
+  padding:10px 12px;margin-bottom:8px;
+  display:flex;align-items:center;gap:12px;
+  position:relative;overflow:hidden;
+}
+.countdown-card::after{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,rgba(200,135,74,0.15),transparent 70%);
+  pointer-events:none;
+}
+.ring-wrap{flex-shrink:0;}
+.ring-svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:#1E1A50;stroke-width:5;}
+.ring-fill{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset 1s ease;}
+.ring-center{transform:rotate(90deg);transform-origin:50% 50%;}
+.countdown-days{font-family:'Bebas Neue',sans-serif;font-size:38px;fill:var(--moon);letter-spacing:0.02em;}
+.countdown-unit{font-size:9px;fill:var(--sand);font-family:'Barlow Condensed',sans-serif;letter-spacing:0.1em;}
+.countdown-right{}
+.countdown-big{font-family:'Bebas Neue',sans-serif;font-size:12px;color:var(--sand);letter-spacing:0.12em;text-transform:uppercase;}
+.countdown-sub{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3;}
+.countdown-weeks{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:var(--text);margin-top:4px;}
+.countdown-weeks span{color:var(--sand-light);}
+
+/* ── PHASE BAR ── */
+.phase-bar{
+  border-radius:12px;padding:8px 12px;margin-bottom:8px;
+  position:relative;overflow:hidden;
+  border:1px solid;
+}
+.phase-shimmer{
+  position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.06) 50%,transparent 100%);
+  background-size:200% 100%;
+  animation:shimmer 3s ease infinite;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.phase-inner{display:flex;align-items:center;gap:10px;position:relative;z-index:1;}
+.phase-stripe{width:3px;height:32px;border-radius:2px;flex-shrink:0;}
+.phase-eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;}
+.phase-name{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.06em;color:var(--text);}
+.phase-dates{font-size:9px;color:var(--muted);}
+.phase-wk{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.02em;line-height:1;}
+.phase-wkof{font-size:8px;color:var(--dim);}
+
+/* ── TODAY ── */
+.today-card{
+  border-radius:14px;padding:11px 14px;margin-bottom:8px;
+  position:relative;overflow:hidden;
+  border:1px solid;
+}
+.today-glow{
+  position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;
+  pointer-events:none;
+}
+.today-day{font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);}
+.today-workout{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;line-height:1.05;margin:2px 0 5px;}
+.today-tip{font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:10px;font-style:italic;}
+.btn-row{display:flex;gap:8px;}
+.btn-log{
+  flex:1;padding:9px 0;border-radius:9px;border:none;cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.08em;
+  text-transform:uppercase;transition:all 0.2s;position:relative;overflow:hidden;
+}
+.btn-log.unlogged{background:linear-gradient(135deg,var(--sand),var(--coral));color:#fff;}
+.btn-log.logged{background:linear-gradient(135deg,#1A4A2A,#0A2A18);color:#48C878;border:1px solid #2A6A3A;}
+.btn-log::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);pointer-events:none;}
+.btn-strava{
+  padding:9px 12px;border-radius:9px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#FC4C02,#D43A00);color:#fff;
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.08em;
+  text-transform:uppercase;text-decoration:none;display:flex;align-items:center;gap:5px;
+}
+
+/* ── TOMORROW ── */
+.tmr-card{
+  background:linear-gradient(135deg,rgba(13,16,53,0.9),rgba(8,7,26,0.9));
+  border:1px solid rgba(200,135,74,0.3);border-radius:10px;
+  padding:8px 12px;margin-bottom:8px;
+  border-left:3px solid var(--sand);
+}
+.tmr-label{font-family:'Barlow Condensed',sans-serif;font-size:9px;color:var(--sand);font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:2px;}
+.tmr-workout{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.04em;color:var(--muted);}
+.tmr-hint{font-size:9px;color:var(--dim);margin-top:1px;font-style:italic;}
+
+/* ── WEEK VIEW ── */
+.week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.week-nav-btn{
+  background:var(--card);border:1px solid var(--border);color:var(--muted);
+  border-radius:10px;width:40px;height:40px;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);
+}
+.week-nav-center{text-align:center;}
+.week-nav-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.06em;}
+.week-nav-dates{font-size:10px;color:var(--dim);}
+
+.day-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,37,96,0.5);}
+.day-row:last-of-type{border-bottom:none;}
+.day-dot{
+  width:34px;height:34px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.05em;
+  transition:all 0.2s;
+}
+.day-workout{flex:1;font-size:13px;}
+.day-check{
+  width:30px;height:30px;border-radius:6px;border:none;cursor:pointer;
+  font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:all 0.2s;
+}
+.cutback-badge{
+  margin-top:10px;padding:8px 12px;
+  background:rgba(232,99,74,0.1);border:1px solid rgba(232,99,74,0.3);
+  border-radius:8px;font-size:11px;color:var(--coral-light);font-weight:500;
+  font-family:'Barlow Condensed',sans-serif;letter-spacing:0.05em;
+}
+.week-tip{
+  margin-top:10px;padding:10px 12px;
+  background:rgba(200,135,74,0.06);border-radius:8px;
+  font-size:11px;color:var(--dim);line-height:1.55;font-style:italic;
+}
+
+/* ── PROGRESS ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+.stat-box{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:12px 8px;text-align:center;backdrop-filter:blur(8px);
+  position:relative;overflow:hidden;
+}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;}
+.stat-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:0.08em;}
+
+/* Mountain ridge chart */
+.ridge-wrap{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px;backdrop-filter:blur(8px);}
+.ridge-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.06em;margin-bottom:12px;color:var(--sand-light);}
+#ridge-svg{width:100%;overflow:visible;}
+
+.phase-progress{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 16px;backdrop-filter:blur(8px);}
+.phase-prog-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.06em;margin-bottom:14px;color:var(--sand-light);}
+.phase-prog-row{margin-bottom:14px;}
+.phase-prog-row:last-child{margin-bottom:0;}
+.phase-prog-header{display:flex;justify-content:space-between;margin-bottom:5px;}
+.phase-prog-name{font-size:12px;color:var(--muted);}
+.phase-prog-pct{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;}
+.phase-prog-track{height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.phase-prog-fill{height:100%;border-radius:3px;transition:width 0.8s cubic-bezier(0.22,1,0.36,1);}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+.modal-sheet{
+  background:linear-gradient(180deg,#1A1650,#0D1035);
+  border:1px solid var(--border);border-radius:20px 20px 0 0;
+  padding:20px 20px calc(30px + var(--safe-bot));
+  width:100%;max-width:480px;
+}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;margin-bottom:2px;}
+.modal-subtitle{font-size:12px;color:var(--dim);margin-bottom:18px;font-style:italic;}
+.inp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.inp-group label{font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--muted);font-weight:700;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:5px;}
+.inp-group input,.inp-group textarea{
+  width:100%;padding:10px 12px;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:16px;font-family:'DM Sans',sans-serif;
+  outline:none;transition:border-color 0.2s;
+}
+.inp-group input:focus,.inp-group textarea:focus{border-color:var(--sand);}
+.inp-group textarea{resize:none;height:70px;font-size:13px;}
+.feel-label-row{font-family:'Barlow Condensed',sans-serif;font-size:10px;color:var(--muted);font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;}
+.feel-row{display:flex;gap:6px;margin-bottom:14px;}
+.feel-btn{flex:1;padding:9px 4px;border-radius:8px;border:1px solid transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all 0.15s;}
+.feel-emoji{font-size:22px;}
+.feel-word{font-size:8px;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.05em;}
+.btn-save{
+  width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--sand),var(--coral));
+  color:#fff;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.1em;
+}
+
+/* ── BURST ANIMATION ── */
+.burst{position:fixed;pointer-events:none;z-index:300;}
+.burst-particle{position:absolute;width:6px;height:6px;border-radius:50%;animation:burst-fly 0.7s ease-out forwards;}
+@keyframes burst-fly{0%{transform:translate(0,0) scale(1);opacity:1;}100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0;}}
+
+/* ── NAV ── */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;
+  background:rgba(8,7,26,0.95);border-top:1px solid var(--border);
+  display:flex;padding:8px 0 calc(14px + var(--safe-bot));
+  backdrop-filter:blur(16px);z-index:100;
+}
+.nav-btn{flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 0;}
+.nav-icon{font-size:20px;}
+.nav-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.1em;}
+.nav-pip{width:18px;height:2px;border-radius:1px;margin-top:1px;}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp 0.3s ease forwards;opacity:0;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.slide-up{animation:slideUp 0.35s cubic-bezier(0.32,0.72,0,1) forwards;}
+@keyframes twinkle{0%,100%{opacity:0.4}50%{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+</style>
+</head>
+<body>
+
+<!-- Starfield canvas -->
+<canvas id="starfield"></canvas>
+
+<div class="app" id="app">
+  <header class="header">
+    <div class="header-inner">
+      <div>
+        <div class="header-eyebrow">Canton, GA → Joshua Tree NP</div>
+        <div class="header-title">Desert Run</div>
+      </div>
+      <div class="header-race">
+        <div class="header-race-label">Race Day</div>
+        <div class="header-race-date">NOV 7 · 2026</div>
+        <div class="header-race-loc">Half Marathon</div>
+      </div>
+    </div>
+    <div id="horizon-wrap"></div>
+  </header>
+
+  <div class="content" id="content"></div>
+
+  <nav class="bottom-nav" id="nav"></nav>
+</div>
+
+<!-- Log Modal -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="closeModalOverlay(event)">
+  <div class="modal-sheet slide-up">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Log Run</div>
+    <div class="modal-subtitle" id="modal-subtitle"></div>
+    <div class="inp-grid">
+      <div class="inp-group"><label>Distance (mi)</label><input id="inp-miles" type="number" step="0.1" placeholder="0.0" inputmode="decimal"></div>
+      <div class="inp-group"><label>Time (mm:ss)</label><input id="inp-time" type="text" placeholder="45:00"></div>
+    </div>
+    <div class="feel-label-row">How did it feel?</div>
+    <div class="feel-row" id="feel-row"></div>
+    <div class="inp-group" style="margin-bottom:16px"><label>Notes</label><textarea id="inp-notes" placeholder="How'd it go? Heat? Pace? Anything notable?"></textarea></div>
+    <button class="btn-save" onclick="saveLog()">Save Run ›</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+const PHASES=[
+  {id:1,name:"Base Building",   dates:"Jun 1 – Jul 26", color:"#4A9EE8"},
+  {id:2,name:"Build & Strengthen",dates:"Jul 27 – Sep 27",color:"#E8A040"},
+  {id:3,name:"Peak & Taper",    dates:"Sep 28 – Nov 7", color:"#48C878"},
+];
+const PLAN=[
+  {week:1,phase:1,dates:"Jun 1–7",    cutback:false,mon:"Rest",tue:"3mi Easy",wed:"Rest",thu:"3mi Easy",fri:"Rest",sat:"4mi Long",sun:"Rest",total:10,   tip:"First week! Focus on easy effort, not pace. If you can't hold a conversation, slow down."},
+  {week:2,phase:1,dates:"Jun 8–14",   cutback:false,mon:"Rest",tue:"3mi Easy",wed:"Rest",thu:"3.5mi Easy",fri:"Rest",sat:"5mi Long",sun:"Rest",total:11.5,tip:"Canton heat is real. Run before 7am. Hydrate the night before."},
+  {week:3,phase:1,dates:"Jun 15–21",  cutback:false,mon:"Rest",tue:"3mi Easy",wed:"2mi Easy",thu:"3.5mi Easy",fri:"Rest",sat:"5.5mi Long",sun:"Rest",total:14,  tip:"3rd week — some fatigue is normal. That's adaptation happening. Keep it easy."},
+  {week:4,phase:1,dates:"Jun 22–28",  cutback:false,mon:"Rest",tue:"3mi Easy",wed:"2mi Easy",thu:"4mi Easy",fri:"Rest",sat:"6mi Long",sun:"Rest",total:15,  tip:"6 miles on Saturday! Practice your race-day nutrition on every long run."},
+  {week:5,phase:1,dates:"Jun 29–Jul 5",cutback:false,mon:"Rest",tue:"3mi Easy",wed:"2mi Easy",thu:"4mi Easy",fri:"Rest",sat:"6.5mi Long",sun:"Rest",total:15.5,tip:"July 4th week — heat will be intense. Adjust timing, no hero miles."},
+  {week:6,phase:1,dates:"Jul 6–12",   cutback:true, mon:"Rest",tue:"3mi Easy",wed:"Rest",thu:"3mi Easy",fri:"Rest",sat:"5mi Easy",sun:"Rest",total:11,  tip:"CUTBACK WEEK. Easier = better adaptation. Do not add miles. Sleep extra."},
+  {week:7,phase:1,dates:"Jul 13–19",  cutback:false,mon:"Rest",tue:"3.5mi Easy",wed:"2mi Easy",thu:"4mi Easy",fri:"Rest",sat:"7mi Long",sun:"Rest",total:16.5,tip:"7 miles — you're genuinely half marathon training now. Celebrate it."},
+  {week:8,phase:1,dates:"Jul 20–26",  cutback:false,mon:"Rest",tue:"3.5mi Easy",wed:"2mi Easy",thu:"4.5mi Easy",fri:"Rest",sat:"8mi Long",sun:"Rest",total:18,  tip:"End of Phase 1. 8 miles in brutal Georgia summer. That's real fitness banked."},
+  {week:9,phase:2,dates:"Jul 27–Aug 2",cutback:false,mon:"Rest",tue:"4mi Easy",wed:"2mi Easy",thu:"4mi Tempo",fri:"Rest",sat:"8.5mi Long",sun:"Rest",total:18.5,tip:"First tempo run! Comfortably hard — short phrases, not full sentences. 1mi warm-up first."},
+  {week:10,phase:2,dates:"Aug 3–9",   cutback:false,mon:"Rest",tue:"4mi Easy",wed:"2mi Easy",thu:"4mi Intervals",fri:"Rest",sat:"9mi Long",sun:"Rest",total:19,  tip:"Intervals: 4×800m hard with 400m recovery jog. 1mi warm-up and cool-down each."},
+  {week:11,phase:2,dates:"Aug 10–16", cutback:true, mon:"Rest",tue:"4mi Easy",wed:"Rest",thu:"3mi Easy",fri:"Rest",sat:"6mi Easy",sun:"Rest",total:13,  tip:"CUTBACK WEEK. Your body rebuilds stronger during recovery. Sleep, eat, repeat."},
+  {week:12,phase:2,dates:"Aug 17–23", cutback:false,mon:"Rest",tue:"4mi Easy",wed:"3mi Easy",thu:"4mi Tempo",fri:"Rest",sat:"9.5mi Long",sun:"Rest",total:20.5,tip:"9.5 miles — serious territory. Hint of fall in the Georgia air soon."},
+  {week:13,phase:2,dates:"Aug 24–30", cutback:false,mon:"Rest",tue:"4mi Easy",wed:"3mi Easy",thu:"4mi Intervals",fri:"Rest",sat:"10mi Long",sun:"Rest",total:21,  tip:"DOUBLE DIGITS. First 10-miler. Run it easy, celebrate it, refuel well."},
+  {week:14,phase:2,dates:"Sep 7–13",  cutback:false,mon:"Rest",tue:"4mi Easy",wed:"3mi Easy",thu:"5mi Tempo",fri:"Rest",sat:"11mi Long",sun:"Rest",total:23,  tip:"11 miles — you're 2 miles from race distance. The desert awaits."},
+  {week:15,phase:2,dates:"Sep 14–20", cutback:true, mon:"Rest",tue:"4mi Easy",wed:"Rest",thu:"3mi Easy",fri:"Rest",sat:"7mi Easy",sun:"Rest",total:14,  tip:"CUTBACK WEEK. October is close. Cool weather coming to Canton — enjoy it."},
+  {week:16,phase:2,dates:"Sep 21–27", cutback:false,mon:"Rest",tue:"4mi Easy",wed:"3mi Easy",thu:"5mi Intervals",fri:"Rest",sat:"11mi Long",sun:"Rest",total:23,  tip:"Last hard week of Phase 2. You are fit. Joshua Tree is 6 weeks away."},
+  {week:17,phase:3,dates:"Sep 28–Oct 4",cutback:false,mon:"Rest",tue:"4mi Easy",wed:"3mi Easy",thu:"4mi Tempo",fri:"Rest",sat:"12mi Long",sun:"Rest",total:23,  tip:"PEAK WEEK. 12 miles — longest run of the plan. Drink every 15 min, even if not thirsty."},
+  {week:18,phase:3,dates:"Oct 5–11",  cutback:false,mon:"Rest",tue:"4mi Easy",wed:"3mi Easy",thu:"4mi Easy",fri:"Rest",sat:"12mi Long",sun:"Rest",total:23,  tip:"Second peak week. Confidence building. You can run the distance. JTNP is 4 weeks out."},
+  {week:19,phase:3,dates:"Oct 12–18", cutback:true, mon:"Rest",tue:"4mi Easy",wed:"Rest",thu:"3mi Easy",fri:"Rest",sat:"8mi Easy",sun:"Rest",total:15,  tip:"CUTBACK WEEK — taper begins. Resist adding miles. Fresh legs race faster than tired ones."},
+  {week:20,phase:3,dates:"Oct 19–25", cutback:false,mon:"Rest",tue:"3mi Easy",wed:"2mi Easy",thu:"3mi Tempo",fri:"Rest",sat:"10mi Long",sun:"Rest",total:18,  tip:"2 weeks out. Keep some quality, but mileage drops. Your body is storing energy."},
+  {week:21,phase:3,dates:"Oct 26–Nov 1",cutback:false,mon:"Rest",tue:"3mi Easy",wed:"Rest",thu:"2mi Easy",fri:"Rest",sat:"6mi Easy",sun:"Rest",total:11,  tip:"Race week minus 1. Easy runs only. Sleep. Hydrate. Prep gear. You are READY."},
+  {week:22,phase:3,dates:"Nov 2–7",   cutback:false,mon:"Rest",tue:"2mi Easy",wed:"Rest",thu:"2mi Easy",fri:"Rest",sat:"Rest",sun:"🏁 RACE!",total:"4+Race",tip:"RACE WEEK. Easy shakeouts Mon & Thu. Rest Fri–Sat. Sunday: Go get it. You've earned this."},
+];
+const DAYS=["mon","tue","wed","thu","fri","sat","sun"];
+const DAY_LABELS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const FEELS=[["😫","Tough"],["😐","OK"],["🙂","Good"],["😄","Great"],["🔥","Fire"]];
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let tab="today", viewWeek=getWeekNumber();
+let logs=loadLogs();
+let currentModal=null, currentFeel=3;
+
+function getWeekNumber(){
+  const start=new Date("2026-06-01"),today=new Date();
+  const diff=Math.floor((today-start)/(7*864e5));
+  return Math.max(1,Math.min(22,diff+1));
+}
+function getTodayDay(){return["sun","mon","tue","wed","thu","fri","sat"][new Date().getDay()];}
+function getDaysUntilRace(){return Math.max(0,Math.ceil((new Date("2026-11-07")-new Date())/864e5));}
+function loadLogs(){try{return JSON.parse(localStorage.getItem("dr_logs")||"{}");}catch{return{};}}
+function saveLogs(){try{localStorage.setItem("dr_logs",JSON.stringify(logs));}catch{}}
+function formatTime(s){if(!s)return"";const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;return h>0?h+":"+String(m).padStart(2,"0")+":"+String(sc).padStart(2,"0"):m+":"+String(sc).padStart(2,"0");}
+function parseTime(str){const p=str.split(":").map(Number);if(p.length===3)return p[0]*3600+p[1]*60+p[2];if(p.length===2)return p[0]*60+p[1];return 0;}
+function pc(p){return PHASES[p-1]?.color||"#4A9EE8";}
+
+// ═══════════════════════════════════════════════════════
+// STARFIELD
+// ═══════════════════════════════════════════════════════
+function initStarfield(){
+  const canvas=document.getElementById("starfield");
+  const ctx=canvas.getContext("2d");
+  let W,H,stars=[];
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  function makeStars(){
+    stars=[];
+    for(let i=0;i<180;i++){
+      stars.push({x:Math.random()*W,y:Math.random()*H*0.7,r:Math.random()*1.4+0.2,
+        twinkle:Math.random()*Math.PI*2,speed:Math.random()*0.02+0.005,
+        color:Math.random()>0.8?"#F5E6C8":"#C8C0E0"});
+    }
+    // A few brighter stars
+    for(let i=0;i<12;i++){
+      stars.push({x:Math.random()*W,y:Math.random()*H*0.5,r:Math.random()*1+1.2,
+        twinkle:Math.random()*Math.PI*2,speed:Math.random()*0.015+0.003,
+        color:"#F5E6C8",bright:true});
+    }
+  }
+  resize(); makeStars();
+  window.addEventListener("resize",()=>{resize();makeStars();});
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // Sky gradient
+    const grad=ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,"#08071A");
+    grad.addColorStop(0.6,"#0D0E28");
+    grad.addColorStop(1,"#1A1035");
+    ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+    // Moon
+    const moonX=W*0.8, moonY=H*0.12;
+    const moonGrad=ctx.createRadialGradient(moonX,moonY,2,moonX,moonY,22);
+    moonGrad.addColorStop(0,"rgba(245,230,200,0.95)");
+    moonGrad.addColorStop(0.6,"rgba(245,230,200,0.6)");
+    moonGrad.addColorStop(1,"rgba(245,230,200,0)");
+    ctx.fillStyle=moonGrad; ctx.beginPath(); ctx.arc(moonX,moonY,22,0,Math.PI*2); ctx.fill();
+    // Moon glow
+    const glowGrad=ctx.createRadialGradient(moonX,moonY,10,moonX,moonY,60);
+    glowGrad.addColorStop(0,"rgba(200,135,74,0.12)");
+    glowGrad.addColorStop(1,"rgba(200,135,74,0)");
+    ctx.fillStyle=glowGrad; ctx.beginPath(); ctx.arc(moonX,moonY,60,0,Math.PI*2); ctx.fill();
+    // Stars
+    stars.forEach(s=>{
+      s.twinkle+=s.speed;
+      const alpha=0.4+Math.sin(s.twinkle)*0.4;
+      ctx.globalAlpha=alpha;
+      if(s.bright){
+        const sg=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*3);
+        sg.addColorStop(0,s.color); sg.addColorStop(1,"transparent");
+        ctx.fillStyle=sg; ctx.beginPath(); ctx.arc(s.x,s.y,s.r*3,0,Math.PI*2); ctx.fill();
+      }
+      ctx.fillStyle=s.color; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha=1;
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ═══════════════════════════════════════════════════════
+// DESERT HORIZON SVG
+// ═══════════════════════════════════════════════════════
+function buildHorizon(){
+  const W=480,H=52;
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" style="width:100%;height:52px;display:block;">
+  <defs>
+    <linearGradient id="skyg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#08071A" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#1A0E08" stop-opacity="0.6"/>
+    </linearGradient>
+    <linearGradient id="sandg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4A3020"/>
+      <stop offset="100%" stop-color="#2A1808"/>
+    </linearGradient>
+  </defs>
+  <!-- Ground -->
+  <path d="M0,38 Q40,32 80,36 Q120,40 160,34 Q200,28 240,36 Q280,42 320,34 Q360,26 400,34 Q440,40 480,36 L480,52 L0,52 Z" fill="url(#sandg)" opacity="0.7"/>
+  <!-- Boulders -->
+  <ellipse cx="60" cy="38" rx="14" ry="9" fill="#3A2818" opacity="0.85"/>
+  <ellipse cx="72" cy="40" rx="10" ry="7" fill="#2A1808" opacity="0.9"/>
+  <ellipse cx="310" cy="36" rx="18" ry="11" fill="#3A2818" opacity="0.85"/>
+  <ellipse cx="326" cy="38" rx="12" ry="8" fill="#2A1808" opacity="0.9"/>
+  <ellipse cx="430" cy="37" rx="12" ry="8" fill="#3A2818" opacity="0.8"/>
+  <!-- Joshua Trees -->
+  <!-- Tree 1 -->
+  <rect x="128" y="14" width="4" height="24" fill="#2A1808" rx="1"/>
+  <line x1="130" y1="22" x2="118" y2="18" stroke="#2A1808" stroke-width="3" stroke-linecap="round"/>
+  <line x1="130" y1="25" x2="142" y2="20" stroke="#2A1808" stroke-width="3" stroke-linecap="round"/>
+  <line x1="130" y1="19" x2="122" y2="13" stroke="#2A1808" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="130" cy="12" rx="5" ry="4" fill="#3A2818" opacity="0.9"/>
+  <ellipse cx="118" cy="16" rx="4" ry="3" fill="#3A2818" opacity="0.8"/>
+  <ellipse cx="143" cy="18" rx="4" ry="3" fill="#3A2818" opacity="0.8"/>
+  <ellipse cx="122" cy="11" rx="3" ry="2.5" fill="#3A2818" opacity="0.75"/>
+  <!-- Tree 2 -->
+  <rect x="228" y="10" width="5" height="28" fill="#2A1808" rx="1"/>
+  <line x1="230" y1="20" x2="216" y2="14" stroke="#2A1808" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="230" y1="24" x2="246" y2="17" stroke="#2A1808" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="230" y1="16" x2="220" y2="8" stroke="#2A1808" stroke-width="3" stroke-linecap="round"/>
+  <line x1="230" y1="18" x2="240" y2="11" stroke="#2A1808" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="230" cy="8" rx="6" ry="5" fill="#3A2818" opacity="0.9"/>
+  <ellipse cx="215" cy="12" rx="5" ry="4" fill="#3A2818" opacity="0.8"/>
+  <ellipse cx="247" cy="15" rx="5" ry="4" fill="#3A2818" opacity="0.8"/>
+  <ellipse cx="219" cy="5" rx="4" ry="3" fill="#3A2818" opacity="0.75"/>
+  <ellipse cx="241" cy="9" rx="4" ry="3" fill="#3A2818" opacity="0.75"/>
+  <!-- Tree 3 (small) -->
+  <rect x="378" y="20" width="3" height="18" fill="#2A1808" rx="1"/>
+  <line x1="380" y1="27" x2="372" y2="23" stroke="#2A1808" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="380" y1="30" x2="388" y2="25" stroke="#2A1808" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="380" cy="18" rx="4" ry="3.5" fill="#3A2818" opacity="0.85"/>
+  <ellipse cx="371" cy="21" rx="3" ry="2.5" fill="#3A2818" opacity="0.75"/>
+  <ellipse cx="389" cy="23" rx="3" ry="2.5" fill="#3A2818" opacity="0.75"/>
+  <!-- Fade overlay -->
+  <rect width="${W}" height="${H}" fill="url(#skyg)"/>
+</svg>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER ENGINE
+// ═══════════════════════════════════════════════════════
+function render(){
+  renderNav();
+  const c=document.getElementById("content");
+  c.innerHTML="";
+  if(tab==="today") renderToday(c);
+  else if(tab==="week") renderWeek(c);
+  else if(tab==="progress") renderProgress(c);
+  // Stagger fade-up
+  c.querySelectorAll(".fade-up").forEach((el,i)=>{el.style.animationDelay=(i*0.05)+"s";});
+}
+
+function renderNav(){
+  const tabs=[{id:"today",icon:"⚡",label:"Today"},{id:"week",icon:"📅",label:"Week"},{id:"progress",icon:"📈",label:"Progress"}];
+  document.getElementById("nav").innerHTML=tabs.map(t=>`
+    <button class="nav-btn" onclick="setTab('${t.id}')">
+      <span class="nav-icon">${t.icon}</span>
+      <span class="nav-label" style="color:${tab===t.id?'var(--sand-light)':'var(--dim)'}">${t.label}</span>
+      <div class="nav-pip" style="background:${tab===t.id?'var(--sand)':'transparent'}"></div>
+    </button>`).join("");
+}
+
+// ── TODAY ──
+function renderToday(c){
+  const todayDay=getTodayDay();
+  const curWeek=PLAN[getWeekNumber()-1];
+  const workout=curWeek?.[todayDay]||"Rest";
+  const isRest=workout==="Rest";
+  const logKey=`${curWeek?.week}-${todayDay}`;
+  const isLogged=!!logs[logKey]?.completed;
+  const color=pc(curWeek?.phase||1);
+  const days=getDaysUntilRace();
+  const totalDays=159, progress=Math.max(0,Math.min(1,(totalDays-days)/totalDays));
+  const r=36, circ=2*Math.PI*r, offset=circ*(1-progress);
+
+  // Countdown ring
+  c.innerHTML+=`<div class="countdown-card fade-up">
+    <div class="ring-wrap">
+      <svg class="ring-svg" width="82" height="82" viewBox="0 0 82 82">
+        <circle class="ring-bg" cx="41" cy="41" r="${r}"/>
+        <circle class="ring-fill" cx="41" cy="41" r="${r}"
+          stroke="url(#ringGrad)" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"/>
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#C8874A"/>
+            <stop offset="100%" stop-color="#E8634A"/>
+          </linearGradient>
+        </defs>
+        <g class="ring-center">
+          <text x="41" y="38" text-anchor="middle" dominant-baseline="middle" font-family="'Bebas Neue',sans-serif" font-size="24" fill="#F0EAD6" letter-spacing="1">${days}</text>
+          <text x="41" y="52" text-anchor="middle" font-family="'Barlow Condensed',sans-serif" font-size="8" fill="#C8874A" letter-spacing="2" font-weight="700">DAYS</text>
+        </g>
+      </svg>
+    </div>
+    <div class="countdown-right">
+      <div class="countdown-big">Race Day Countdown</div>
+      <div class="countdown-sub">Joshua Tree NP · Nov 7, 2026<br>Half Marathon</div>
+      <div class="countdown-weeks">${Math.floor(days/7)}w <span>${days%7}d</span> to go</div>
+    </div>
+  </div>`;
+
+  // Phase
+  const phase=PHASES[(curWeek?.phase||1)-1];
+  c.innerHTML+=`<div class="phase-bar fade-up" style="background:${color}14;border-color:${color}33">
+    <div class="phase-shimmer"></div>
+    <div class="phase-inner">
+      <div class="phase-stripe" style="background:${color}"></div>
+      <div style="flex:1">
+        <div class="phase-eyebrow" style="color:${color}">Phase ${phase.id}</div>
+        <div class="phase-name">${phase.name}</div>
+        <div class="phase-dates">${phase.dates}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="phase-wk" style="color:${color}">W${getWeekNumber()}</div>
+        <div class="phase-wkof">of 22</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Today workout
+  if(isRest){
+    c.innerHTML+=`<div class="today-card fade-up" style="background:linear-gradient(145deg,#110E35,#0A0820);border-color:#2A2560;border:1px solid #2A2560">
+      <div class="today-day">Today · ${DAY_LABELS[DAYS.indexOf(todayDay)]}</div>
+      <div class="today-workout" style="color:var(--dim)">Rest Day</div>
+      <div class="today-tip" style="margin-bottom:10px">Recovery is training too — but if you're making up a missed run or feeling great, log it below.</div>
+      <div class="btn-row">
+        <button class="btn-log ${isLogged?'logged':'unlogged'}" id="log-btn" onclick="openLog('${logKey}','Bonus / Makeup Run')">
+          ${isLogged?'✓ Run Logged!':'+ Log a Run'}
+        </button>
+        <a class="btn-strava" href="https://www.strava.com/dashboard" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+          Strava
+        </a>
+      </div>
+    </div>`;
+  } else {
+    const glowColor=color+"44";
+    c.innerHTML+=`<div class="today-card fade-up" style="background:linear-gradient(145deg,#110E35,#0A0820);border-color:${color}44">
+      <div class="today-glow" style="background:radial-gradient(circle,${glowColor},transparent 70%)"></div>
+      <div class="today-day">Today · ${DAY_LABELS[DAYS.indexOf(todayDay)]}</div>
+      <div class="today-workout" style="color:${color}">${workout}</div>
+      <div class="today-tip">${curWeek?.tip}</div>
+      <div class="btn-row">
+        <button class="btn-log ${isLogged?'logged':'unlogged'}" id="log-btn" onclick="openLog('${logKey}','${workout.replace(/'/g,"\\'")}')">
+          ${isLogged?"✓ Logged!":"Log This Run ›"}
+        </button>
+        <a class="btn-strava" href="https://www.strava.com/dashboard" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+          Strava
+        </a>
+      </div>
+    </div>`;
+  }
+
+  // Tomorrow reminder
+  const ti=DAYS.indexOf(todayDay);
+  if(ti<6){
+    const td=DAYS[ti+1], tw=curWeek?.[td];
+    if(tw&&tw!=="Rest"){
+      c.innerHTML+=`<div class="tmr-card fade-up">
+        <div class="tmr-label">🔔 Tomorrow · ${DAY_LABELS[ti+1]}</div>
+        <div class="tmr-workout">${tw}</div>
+        <div class="tmr-hint">Lay out your gear tonight · Set your alarm early</div>
+      </div>`;
+    }
+  }
+}
+
+// ── WEEK ──
+function renderWeek(c){
+  const w=PLAN[viewWeek-1];
+  const todayDay=getTodayDay();
+  const isCurWeek=viewWeek===getWeekNumber();
+  const color=pc(w?.phase||1);
+
+  c.innerHTML+=`<div class="week-nav fade-up">
+    <button class="week-nav-btn" onclick="changeWeek(-1)">←</button>
+    <div class="week-nav-center">
+      <div class="week-nav-title">Week ${viewWeek}</div>
+      <div class="week-nav-dates">${w?.dates}${isCurWeek?" · Current Week":""}</div>
+    </div>
+    <button class="week-nav-btn" onclick="changeWeek(1)">→</button>
+  </div>`;
+
+  const rows=DAYS.map((day,i)=>{
+    const workout=w?.[day]||"Rest";
+    const isToday=isCurWeek&&day===todayDay;
+    const isRest=workout==="Rest";
+    const logKey=`${w?.week}-${day}`;
+    const isLogged=!!logs[logKey]?.completed;
+    const loggedMiles=logs[logKey]?.miles;
+    const workoutDisplay=isRest&&isLogged?`Bonus Run${loggedMiles?" · "+loggedMiles+"mi":""}`:workout;
+    return `<div class="day-row">
+      <div class="day-dot" style="background:${isToday?color:isLogged&&isRest?"rgba(72,200,120,0.15)":"rgba(255,255,255,0.04)"};color:${isToday?"#fff":isLogged&&isRest?"#48C878":"var(--faint)"};border:2px solid ${isToday?color:isLogged&&isRest?"#48C87855":"transparent"}">
+        ${DAY_LABELS[i].slice(0,2)}
+      </div>
+      <div class="day-workout" style="color:${isToday?"var(--text)":isRest&&!isLogged?"var(--faint)":"var(--muted)"};font-weight:${isToday?600:400}">${workoutDisplay}</div>
+      <div style="display:flex;gap:5px;align-items:center">
+        <button class="day-check" style="background:${isLogged?"rgba(72,200,120,0.15)":"rgba(255,255,255,0.04)"};color:${isLogged?"#48C878":"var(--faint)"};border:1px solid ${isLogged?"#48C87844":"var(--border)"}" onclick="openLog('${logKey}','${isRest?"Bonus / Makeup Run":workout.replace(/'/g,"\\'")}')">
+          ${isLogged?"✓":isRest?"＋":"○"}
+        </button>
+        <a href="https://www.strava.com/dashboard" target="_blank" style="width:26px;height:26px;border-radius:6px;background:#FC4C0222;border:1px solid #FC4C0244;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+        </a>
+      </div>
+    </div>`;
+  }).join("");
+
+  let extra=w?.cutback?`<div class="cutback-badge">↓ Cutback Week — reduce mileage ~30–40%. This is intentional!</div>`:"";
+  extra+=`<div class="week-tip">💡 ${w?.tip}</div>`;
+
+  c.innerHTML+=`<div class="card fade-up">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.06em;color:var(--sand-light)">Schedule</span>
+      <span style="font-size:11px;color:var(--dim)">${w?.total==="4+Race"?"🏁 Race Week":w?.total+" mi planned"}</span>
+    </div>
+    ${rows}${extra}
+  </div>`;
+}
+
+// ── PROGRESS ──
+function renderProgress(c){
+  const totalRuns=Object.values(logs).filter(l=>l?.completed).length;
+  const totalMiles=Object.values(logs).reduce((s,l)=>s+(parseFloat(l?.miles)||0),0);
+  const activeWeeks=new Set(Object.keys(logs).filter(k=>logs[k]?.completed).map(k=>k.split("-")[0])).size;
+
+  c.innerHTML+=`<div class="stat-grid fade-up">
+    <div class="stat-box"><div class="stat-val" style="color:var(--phase1)">${totalRuns}</div><div class="stat-label">Runs Logged</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--phase3)">${totalMiles.toFixed(1)}</div><div class="stat-label">Miles Logged</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--phase2)">${activeWeeks}</div><div class="stat-label">Active Weeks</div></div>
+  </div>`;
+
+  // Mountain ridge chart
+  const weekly=PLAN.map(w=>{
+    const logged=DAYS.map(d=>logs[`${w.week}-${d}`]).reduce((s,l)=>s+(parseFloat(l?.miles)||0),0);
+    const planned=w.total==="4+Race"?4:parseFloat(w.total);
+    return{week:w.week,planned,logged,phase:w.phase,cutback:w.cutback};
+  });
+  const maxM=Math.max(...weekly.map(w=>Math.max(w.planned,w.logged||0)),1);
+  const curW=getWeekNumber();
+  const svgW=440, svgH=90, padL=4, padR=4, barW=(svgW-padL-padR)/22, barPad=1.5;
+
+  // Build ridge path for planned mileage
+  let plannedPath="";
+  weekly.forEach((w,i)=>{
+    const x=padL+i*barW+barW/2;
+    const y=svgH-8-(w.planned/maxM)*(svgH-18);
+    plannedPath+=(i===0?`M${x},${y}`:`L${x},${y}`);
+  });
+  // Close the path for fill
+  const lastX=padL+21*barW+barW/2, firstX=padL+barW/2;
+  const plannedFill=plannedPath+`L${lastX},${svgH-8} L${firstX},${svgH-8} Z`;
+
+  const bars=weekly.map((w,i)=>{
+    const x=padL+i*barW+barPad;
+    const bw=barW-barPad*2;
+    const lh=(w.logged/maxM)*(svgH-18);
+    const isCur=w.week===curW;
+    const color=PHASES[w.phase-1].color;
+    const y=svgH-8-lh;
+    return lh>0?`<rect x="${x}" y="${y}" width="${bw}" height="${lh}" rx="2" fill="${color}" opacity="${w.week<=curW?0.85:0.3}"/>`
+      +(isCur?`<rect x="${x}" y="${svgH-10}" width="${bw}" height="3" rx="1.5" fill="${color}"/>`:"")
+      :"";
+  }).join("");
+
+  const wkLabels=weekly.filter((_,i)=>i%4===0||i===21).map(w=>{
+    const i=w.week-1;
+    const x=padL+i*barW+barW/2;
+    return `<text x="${x}" y="${svgH}" text-anchor="middle" font-family="'Barlow Condensed',sans-serif" font-size="9" fill="#6A5A4A">W${w.week}</text>`;
+  }).join("");
+
+  c.innerHTML+=`<div class="ridge-wrap fade-up">
+    <div class="ridge-title">Weekly Mileage Ridge</div>
+    <svg id="ridge-svg" viewBox="0 0 ${svgW} ${svgH+4}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="ridgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#4A9EE8" stop-opacity="0.15"/>
+          <stop offset="40%" stop-color="#E8A040" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#48C878" stop-opacity="0.15"/>
+        </linearGradient>
+        <linearGradient id="ridgeLine" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#4A9EE8" stop-opacity="0.5"/>
+          <stop offset="40%" stop-color="#E8A040" stop-opacity="0.5"/>
+          <stop offset="100%" stop-color="#48C878" stop-opacity="0.5"/>
+        </linearGradient>
+      </defs>
+      <!-- Planned ridge fill -->
+      <path d="${plannedFill}" fill="url(#ridgeGrad)"/>
+      <!-- Planned ridge line -->
+      <path d="${plannedPath}" fill="none" stroke="url(#ridgeLine)" stroke-width="1.5" stroke-linejoin="round"/>
+      <!-- Logged bars -->
+      ${bars}
+      <!-- Week labels -->
+      ${wkLabels}
+      <!-- Baseline -->
+      <line x1="${padL}" y1="${svgH-8}" x2="${svgW-padR}" y2="${svgH-8}" stroke="#2A2560" stroke-width="1"/>
+    </svg>
+    <div style="display:flex;gap:14px;margin-top:8px">
+      <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--dim)"><div style="width:16px;height:2px;background:linear-gradient(90deg,#4A9EE8,#E8A040,#48C878);border-radius:1px"></div>Planned</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--dim)"><div style="width:12px;height:8px;background:#4A9EE8;border-radius:2px;opacity:0.85"></div>Logged</div>
+    </div>
+  </div>`;
+
+  // Phase progress
+  const phRows=PHASES.map(p=>{
+    const pw=PLAN.filter(w=>w.phase===p.id);
+    const done=pw.filter(w=>DAYS.some(d=>logs[`${w.week}-${d}`]?.completed)).length;
+    const pct=Math.round((done/pw.length)*100);
+    return `<div class="phase-prog-row">
+      <div class="phase-prog-header">
+        <span class="phase-prog-name">Phase ${p.id}: ${p.name}</span>
+        <span class="phase-prog-pct" style="color:${p.color}">${pct}%</span>
+      </div>
+      <div class="phase-prog-track"><div class="phase-prog-fill" style="width:${pct}%;background:linear-gradient(90deg,${p.color}99,${p.color})"></div></div>
+    </div>`;
+  }).join("");
+
+  c.innerHTML+=`<div class="phase-progress fade-up">
+    <div class="phase-prog-title">Phase Progress</div>
+    ${phRows}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════
+function openLog(logKey,workout){
+  currentModal=logKey;
+  currentFeel=logs[logKey]?.feel||3;
+  const isBonus=workout==="Bonus / Makeup Run";
+  document.getElementById("modal-title").textContent=isBonus?"Bonus / Makeup Run":"Log Run";
+  document.getElementById("modal-subtitle").textContent=isBonus?"Logging outside your plan — it counts!":workout;
+  document.getElementById("inp-miles").value=logs[logKey]?.miles||"";
+  document.getElementById("inp-time").value=logs[logKey]?.time?formatTime(logs[logKey].time):"";
+  document.getElementById("inp-notes").value=logs[logKey]?.notes||"";
+  renderFeels();
+  document.getElementById("modal").style.display="flex";
+  document.body.style.overflow="hidden";
+}
+function renderFeels(){
+  document.getElementById("feel-row").innerHTML=FEELS.map(([emoji,label],i)=>`
+    <button class="feel-btn" onclick="setFeel(${i+1})" style="background:${currentFeel===i+1?"rgba(200,135,74,0.25)":"rgba(255,255,255,0.04)"};border-color:${currentFeel===i+1?"var(--sand)":"var(--border)"}">
+      <span class="feel-emoji">${emoji}</span>
+      <span class="feel-word" style="color:${currentFeel===i+1?"var(--sand-light)":"var(--dim)"}">${label}</span>
+    </button>`).join("");
+}
+function setFeel(n){currentFeel=n;renderFeels();}
+function saveLog(){
+  if(!currentModal)return;
+  logs[currentModal]={completed:true,miles:parseFloat(document.getElementById("inp-miles").value)||0,time:parseTime(document.getElementById("inp-time").value),notes:document.getElementById("inp-notes").value,feel:currentFeel,date:new Date().toLocaleDateString()};
+  saveLogs();
+  fireConfetti();
+  closeModal();
+  render();
+}
+function closeModalOverlay(e){if(e.target===document.getElementById("modal"))closeModal();}
+function closeModal(){document.getElementById("modal").style.display="none";document.body.style.overflow="";currentModal=null;}
+
+// ═══════════════════════════════════════════════════════
+// CONFETTI BURST
+// ═══════════════════════════════════════════════════════
+function fireConfetti(){
+  const btn=document.getElementById("log-btn")||document.body;
+  const rect=btn.getBoundingClientRect();
+  const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+  const colors=["#C8874A","#E8634A","#F5E6C8","#4A9EE8","#48C878","#E8A040"];
+  const wrap=document.createElement("div");
+  wrap.className="burst";
+  wrap.style.left=cx+"px"; wrap.style.top=cy+"px";
+  for(let i=0;i<20;i++){
+    const p=document.createElement("div");
+    p.className="burst-particle";
+    const angle=Math.random()*Math.PI*2, dist=60+Math.random()*80;
+    p.style.setProperty("--tx",Math.cos(angle)*dist+"px");
+    p.style.setProperty("--ty",Math.sin(angle)*dist+"px");
+    p.style.background=colors[Math.floor(Math.random()*colors.length)];
+    p.style.width=p.style.height=(3+Math.random()*5)+"px";
+    p.style.animationDelay=Math.random()*0.15+"s";
+    wrap.appendChild(p);
+  }
+  document.body.appendChild(wrap);
+  setTimeout(()=>wrap.remove(),1000);
+}
+
+// ═══════════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════════
+function setTab(t){tab=t;if(t==="week")viewWeek=getWeekNumber();render();}
+function changeWeek(d){viewWeek=Math.max(1,Math.min(22,viewWeek+d));render();}
+
+// ═══════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════
+initStarfield();
+document.getElementById("horizon-wrap").innerHTML=buildHorizon();
+render();
+</script>
+</body>
+</html>
